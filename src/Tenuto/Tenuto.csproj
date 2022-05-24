@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>Tenuto</AssemblyName>
     <AssemblyTitle>Tenuto RELAX NG validator</AssemblyTitle>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
     <Description>RELAX NG validator for .NET</Description>
     <Copyright>Distributed under the BSD license</Copyright>
     <AssemblyOriginatorKeyFile>src\Tenuto.snk</AssemblyOriginatorKeyFile>
