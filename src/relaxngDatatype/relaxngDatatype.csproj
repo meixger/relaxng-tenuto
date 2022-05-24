@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>relaxngDatatype</AssemblyName>
+        <AssemblyTitle>Relax NG Datatype</AssemblyTitle>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>RELAX NG datatypes for .NET</Description>
+        <Copyright>Distributed under the BSD license</Copyright>
+        <AssemblyOriginatorKeyFile>src\relaxngDatatype.snk</AssemblyOriginatorKeyFile>
+        <OutputType>Library</OutputType>
+        <RootNamespace>relaxngDatatype</RootNamespace>
+        <ProjectGuid>{6AFC9B52-AF10-4C09-9A7C-010EAFF16493}</ProjectGuid>
+        <RepositoryUrl>https://github.com/josephmyers/relaxng-tenuto.git</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/josephmyers/relaxng-tenuto</PackageProjectUrl>
+    </PropertyGroup>
+    <PropertyGroup>
+        <SignAssembly>true</SignAssembly>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <OutputPath>..\..\bin\Release\</OutputPath>
+    </PropertyGroup>
+</Project>

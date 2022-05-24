@@ -1,4 +1,4 @@
-Copyright (c) 2001, RELAX NG Project at SourceForge.
+Copyright (c) 2001, Kohsuke KAWAGUCHI.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

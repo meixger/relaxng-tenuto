@@ -1,7 +1,6 @@
 namespace Tenuto.Datatype.XSDLib {
 
 using org.relaxng.datatype;
-using System.Text;
 using System.Collections;
 
 public class XMLSchemaDatatypeLibrary : DatatypeLibrary {

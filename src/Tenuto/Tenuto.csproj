@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Tenuto</AssemblyName>
+    <AssemblyTitle>Tenuto RELAX NG validator</AssemblyTitle>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>RELAX NG validator for .NET</Description>
+    <Copyright>Distributed under the BSD license</Copyright>
+    <AssemblyOriginatorKeyFile>src\Tenuto.snk</AssemblyOriginatorKeyFile>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Tenuto</RootNamespace>
+    <ProjectGuid>{7AE2AAB9-710F-4BCF-81B6-A624EC6AC3B5}</ProjectGuid>
+    <RepositoryUrl>https://github.com/josephmyers/relaxng-tenuto.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/josephmyers/relaxng-tenuto</PackageProjectUrl>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>..\..\bin\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\relaxngDatatype\relaxngDatatype.csproj" />
+  </ItemGroup>
+</Project>

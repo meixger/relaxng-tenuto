@@ -2,6 +2,7 @@ namespace Tenuto.Reader {
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Resources;
@@ -14,36 +15,36 @@ using org.relaxng.datatype;
 	TODO: there seems to be a bug in the "xml" namespace handling.
 	XmlReader doesn't consider the "xml" prefix to be bounded to
 	"http://www.w3.org/XML/1998/namespace".
-	
+
 	TODO: XmlReader doesn't also properly honor xml:base
-	
+
 	Inheritance:
 		You may want to override the ResolveEntity method to perform
 		customized entity resolution.
-		
+
 		You may want to override the CreateXmlReader method to create
 		your choice of XmlReader. By default, this class uses XmlValidatingReader
 		with validating turned off (to properly expand entities), but
 		you can also use XmlTextReader, or other XmlReader implementations.
 */
 public class GrammarReader : ValidationContext {
-	
+
 	public Grammar parse( string sourceURL ) {
-		
+
 		Uri uri;
 		try {
 			uri = new Uri(sourceURL);
 		} catch( UriFormatException ) {
 			uri = new Uri(Path.GetFullPath(sourceURL));
 		}
-		
+
 		return parse(
 			CreateXmlReader( uri.AbsoluteUri,
 			(Stream)Resolver.GetEntity( uri, null, typeof(Stream))));
 	}
-	
+
 	public Grammar parse( XmlReader reader ) {
-		
+
 		// reset variables
 		nsStack.Clear();
 		nsStack.Push("");
@@ -52,16 +53,16 @@ public class GrammarReader : ValidationContext {
 		entityURLs.Clear();
 		readerStack.Clear();
 		readerStack.Push(null);
-		
+
 		PushEntity(reader);
 		try {
 			// skip xml declaration, DOCTYPE etc.
 			while(!reader.IsStartElement())	reader.Read();
-			
+
 			HadError = false;
 			Expression exp = ReadExp();
 			if( HadError )	return null;	// there was an error.
-			
+
 			if( exp is Grammar )
 				return (Grammar)exp;
 			else {
@@ -73,7 +74,7 @@ public class GrammarReader : ValidationContext {
 			PopEntity();
 		}
 	}
-	
+
 //
 // publicly accessible parameters
 //========================================
@@ -87,24 +88,24 @@ public class GrammarReader : ValidationContext {
 	public XmlResolver Resolver = new XmlUrlResolver();
 	// string messages are resolved through this object.
 	public ResourceManager ResManager;
-	
-	
+
+
 	public GrammarReader( GrammarReaderController controller )
 		: this(controller, new ExpBuilder()) {}
-	
-	
+
+
 	protected XmlReader reader;
 	protected Grammar grammar;
-	
+
 	// RELAX NG namespace
 	public const string RELAXNGNamespace = "http://relaxng.org/ns/structure/1.0";
-	
+
 	public GrammarReader( GrammarReaderController controller, ExpBuilder builder ) {
 		this.Controller = controller;
 		this.Builder = builder;
-//		this.ResManager = new ResourceManager(this.GetType());		
+//		this.ResManager = new ResourceManager(this.GetType());
 		this.ResManager = new ResourceManager("GrammarReader",this.GetType().Assembly);
-		
+
 		{
 			// derived classes can set additional ExpReader directly to
 			// the ExpReaders field.
@@ -139,7 +140,7 @@ public class GrammarReader : ValidationContext {
 			NCReaders = dic;
 		}
 	}
-	
+
 //
 // XmlReader-related low level utility methods
 //================================================
@@ -148,71 +149,71 @@ public class GrammarReader : ValidationContext {
 // directly called. Instead, methods defined in this class should be called.
 	private readonly Stack nsStack = new Stack();
 	private readonly Stack dtLibURIStack = new Stack();
-	
+
 	// at least with Beta2 SDK, XmlReader.BaseURI doesn't handle
 	// xml:base attribute, so we have to process them manually.
 	private readonly Stack baseUriStack = new Stack();
-	
+
 	private readonly Stack readerStack = new Stack();
-	
+
 	// source URL of entities
 	private readonly Stack entityURLs = new Stack();
-	
+
 	// Set up variables to process a next xml file
 	protected bool PushEntity( XmlReader newReader ) {
 		if(newReader==null)
 			return false;	// error of ResolveEntity is handled here
-		
+
 		string systemId = newReader.BaseURI;
-		
+
 		if(entityURLs.Contains(systemId)) {
 			ReportError( ERR_RECURSIVE_INCLUSION, systemId );
 			return false;
 		}
-		
+
 		entityURLs.Push(systemId);
 		readerStack.Push(reader);
 		// ns attribute will be propagated, so don't push it
 		dtLibURIStack.Push("");
 		baseUriStack.Push(new Uri(systemId));
-		
+
 		reader = newReader;
 		Trace.WriteLine(string.Format("PushEntity({0})",reader.BaseURI));
 		return true;
 	}
-	
+
 	// Closes the current reader and gets back to the parent
 	protected void PopEntity() {
 		Trace.WriteLine(string.Format("PopEntity({0})",reader.BaseURI));
 		reader.Close();
-		
+
 		dtLibURIStack.Pop();
 		baseUriStack.Pop();
 		reader = (XmlReader)readerStack.Pop();
 		entityURLs.Pop();
 	}
-	
-	
+
+
 	/**
 	 * return false if this element is an empty element
 	 */
 	protected bool ReadStartElement() {
 		Trace.WriteLine("read <"+reader.Name+">");
-		
+
 		string ns = GetAttribute("ns");
 		if(ns==null)		ns=(string)nsStack.Peek();
 		nsStack.Push(ns);
-		
+
 		bool isEmpty = reader.IsEmptyElement;
-		
+
 		string dtLibURI = GetAttribute("datatypeLibrary");
 		if(dtLibURI==null)
 			dtLibURI=(string)dtLibURIStack.Peek();
-		
+
 		string xmlBase = GetAttribute("xml:base");
 		Uri baseUri = (Uri)baseUriStack.Peek();
 		if(xmlBase!=null)	baseUri = new Uri(baseUri,xmlBase);
-		
+
 		if(!isEmpty) {
 			dtLibURIStack.Push(dtLibURI);
 			baseUriStack.Push(baseUri);
@@ -220,28 +221,28 @@ public class GrammarReader : ValidationContext {
 		reader.ReadStartElement();
 		return !isEmpty;
 	}
-	
+
 	protected void ReadEndElement() {
 		Trace.WriteLine("read </"+reader.Name+">");
-		
+
 		nsStack.Pop();
 		dtLibURIStack.Pop();
 		baseUriStack.Pop();
 		reader.ReadEndElement();
 	}
-	
+
 	protected string GetAttribute( string name ) {
 		string str = reader.GetAttribute(name);
 		if(str==null)	return null;
 		else			return str.Trim();
 	}
-	
+
 	protected string GetAttribute( string ns, string local ) {
 		string str = reader.GetAttribute(ns,local);
 		if(str==null)	return null;
 		else			return str.Trim();
 	}
-	
+
 	// gets the propagated value of the ns attribute.
 	protected string ns {
 		get {
@@ -271,7 +272,7 @@ public class GrammarReader : ValidationContext {
 			return ResolveDatatypeLibrary(datatypeLibraryURI);
 		}
 	}
-	
+
 	// resolves the datatypeLibrary attribute value to a DatatypeLibrary object.
 	protected virtual DatatypeLibrary ResolveDatatypeLibrary( string uri ) {
 		if(uri=="")
@@ -281,12 +282,12 @@ public class GrammarReader : ValidationContext {
 			return Tenuto.Datatype.XSDLib.XMLSchemaDatatypeLibrary.theInstance;
 		throw new Exception(uri);
 	}
-	
+
 	// converts a QName to an XmlName.
 	protected XmlName ProcessQName( string qname ) {
 		int idx = qname.IndexOf(':');
 		if(idx<0)	return new XmlName(ns,qname);	// no prefix
-		
+
 		string uri = reader.LookupNamespace(qname.Substring(0,idx));
 		if(uri==null) {
 			ReportError( ERR_INVALID_QNAME, qname );
@@ -294,9 +295,9 @@ public class GrammarReader : ValidationContext {
 		}
 		return new XmlName(uri,qname.Substring(idx+1));
 	}
-	
-	
-	
+
+
+
 	// skips any foreign elements
 	// return true if XmlReader is on the start tag.
 	// return false if XmlReader is on the end tag.
@@ -311,7 +312,7 @@ public class GrammarReader : ValidationContext {
 		// found an end tag.
 		return false;
 	}
-	
+
 	// makes sure that the current element has no RELAX NG child elements.
 	protected void EmptyContent() {
 		Trace.WriteLine("EmptyContent()");
@@ -325,14 +326,14 @@ public class GrammarReader : ValidationContext {
 			ReportError( ERR_UNEXPECTED_ELEMENT, reader.Name );
 			reader.Skip();
 		}
-		
+
 		// TODO: how can we detect literal strings?
 		ReadEndElement();
 	}
-	
+
 	/**
 	 * reads text inside an element and returns it.
-	 * 
+	 *
 	 * caller should call the ReadStartElement before
 	 * calling this method. null is returned when an error occurs.
 	 *
@@ -350,11 +351,11 @@ public class GrammarReader : ValidationContext {
 				s += reader.Value;
 				reader.Read();
 				break;
-			
+
 			case XmlNodeType.EndElement:
 				if(hadError)	return null;
 				else			return s;
-			
+
 			case XmlNodeType.Element:
 				ReportError( ERR_UNEXPECTED_ELEMENT, reader.Name );
 				hadError = true;
@@ -365,28 +366,28 @@ public class GrammarReader : ValidationContext {
 			}
 		}
 	}
-	
+
 	protected string GetRequiredAttribute( string attrName ) {
 		string r = GetAttribute(attrName);
 		if(r!=null)		return r;
-		
+
 		ReportError( ERR_MISSING_ATTRIBUTE, reader.Name, attrName );
 		return null;
 	}
-	
-	
+
+
 //
 // Expression Element Reader
 //===================================================
 // Each method parses one element (and its descendants) and returns an Expression.
 // These methods assume that XmlReader is on a start tag when it's called.
 // When the method returns, XmlReader is on a start tag of the next element.
-	
+
 	// XmlReader is on a start tag. Parses it and returns the result.
 	protected delegate Expression ExpReader();
 	protected readonly IDictionary ExpReaders;
-	
-	
+
+
 	// XmlReader is on a start tag. Parses it and returns the result.
 	protected virtual Expression ReadExp() {
 		Trace.WriteLine("dispatching :"+reader.LocalName);
@@ -397,14 +398,14 @@ public class GrammarReader : ValidationContext {
 			reader.Skip();
 			return Expression.NotAllowed;	// recover
 		}
-		
+
 		Trace.Indent();
 		Expression exp = expreader();	// dispatch the reader.
 		Trace.Unindent();
 		return exp;
 	}
-	
-	
+
+
 	protected virtual Expression Text() {
 		EmptyContent();
 		return Expression.Text;
@@ -424,12 +425,12 @@ public class GrammarReader : ValidationContext {
 			EmptyContent();
 			return Expression.NotAllowed;
 		}
-		
+
 		// this method has to be called while we are at the start element.
 		XmlReader newReader = ResolveEntity(href);
-		
+
 		EmptyContent();
-		
+
 		if(!PushEntity(newReader))
 			return Expression.NotAllowed;
 		try {
@@ -446,7 +447,7 @@ public class GrammarReader : ValidationContext {
 		if(name==null)
 			// error: missing attribute
 			return Expression.NotAllowed;
-		
+
 		if(grammar==null) {
 			// error: no-enclosing grammar
 			ReportError( ERR_NO_GRAMMAR );
@@ -462,7 +463,7 @@ public class GrammarReader : ValidationContext {
 		if(name==null)
 			// error: missing attribute
 			return Expression.NotAllowed;
-		
+
 		if(grammar==null || grammar.Parent==null) {
 			// error: no-enclosing grammar
 			ReportError( ERR_NO_GRAMMAR );
@@ -518,7 +519,7 @@ public class GrammarReader : ValidationContext {
 		bool isEmpty;
 		NameClass nc = ReadNameClassOrNameAttr( true, out isEmpty );
 		Expression contents = Expression.Text;
-		
+
 		if(!isEmpty) {
 			if( SkipForeignElements() )
 				contents = ReadChildExps( new ExpCombinator(Builder.CreateSequence) );
@@ -532,7 +533,7 @@ public class GrammarReader : ValidationContext {
 		string name = GetAttribute("name");
 		if(name!=null) {
 			NameClass nc;
-			
+
 			// there is @name
 			if( isAttribute
 			&&  reader.GetAttribute("ns")==null	// there is no @ns
@@ -540,7 +541,7 @@ public class GrammarReader : ValidationContext {
 				nc = new SimpleNameClass(new XmlName("",name));
 			else
 				nc = new SimpleNameClass(ProcessQName(name));
-			
+
 			isEmpty = !ReadStartElement();
 			return nc;
 		}
@@ -563,10 +564,10 @@ public class GrammarReader : ValidationContext {
 				return Expression.NotAllowed;
 			}
 		}
-		
+
 		try {
 			object value;
-			
+
 			if(!ReadStartElement())
 				value = dt.CreateValue("",this);
 			else {
@@ -575,12 +576,12 @@ public class GrammarReader : ValidationContext {
 					ReadEndElement();
 					return Expression.NotAllowed;
 				}
-				
+
 				// value must be created while we are still at the endElement
 				value = dt.CreateValue(s,this);
 				ReadEndElement();
 			}
-		
+
 			return Builder.CreateValue(dt,value);
 		} catch( DatatypeException ) {
 			ReportError( ERR_BAD_VALUE_FOR_TYPE );
@@ -595,7 +596,7 @@ public class GrammarReader : ValidationContext {
 			reader.Skip();
 			return Expression.NotAllowed;
 		}
-		
+
 		DatatypeBuilder builder;
 		try {
 			builder = datatypeLibrary.CreateDatatypeBuilder(type);
@@ -605,9 +606,9 @@ public class GrammarReader : ValidationContext {
 			reader.Skip();
 			return Expression.NotAllowed;
 		}
-		
+
 		Expression except=null;
-		
+
 		if(ReadStartElement()) {
 			// if the element has contents, parse them.
 			while(SkipForeignElements()) {
@@ -631,7 +632,7 @@ public class GrammarReader : ValidationContext {
 			}
 			ReadEndElement();
 		}
-		
+
 		try {
 			// derive a type
 			return Builder.CreateData(
@@ -647,7 +648,7 @@ public class GrammarReader : ValidationContext {
 			EmptyContent();
 			return;
 		}
-		
+
 		try {
 			if(reader.IsEmptyElement) {
 				builder.AddParameter(name,"",this);
@@ -663,7 +664,7 @@ public class GrammarReader : ValidationContext {
 			ReportError( ERR_BAD_DATATYPE_PARAMETER, name, e.Message );
 		}
 	}
-	
+
 	protected virtual Expression GrammarElm() {
 		Grammar n = new Grammar(grammar,Builder);
 		grammar = n;
@@ -673,7 +674,7 @@ public class GrammarReader : ValidationContext {
 	}
 	protected virtual void DivInGrammar() {
 		if(!ReadStartElement())		return;
-		
+
 		while(SkipForeignElements()) {
 			string name = reader.LocalName;
 			if(name=="div")		DivInGrammar();
@@ -721,17 +722,17 @@ public class GrammarReader : ValidationContext {
 			return null;
 		}
 		Expression body = Group();	// parse the body.
-		
+
 		ReferenceExp exp = grammar.GetOrCreate(name);
 		CombineReferenceExp(exp,body,combine);
 		return exp;
 	}
-	
+
 	private readonly Hashtable refParseInfos = new Hashtable();
 	private class RefParseInfo {
 		public string Combine;
 		public bool HeadDefined;
-		
+
 		// this location specifies one of the referer to this expression
 		public int LineNumber = -1;
 		public int LinePosition = -1;
@@ -752,7 +753,7 @@ public class GrammarReader : ValidationContext {
 			refParseInfos[exp] = pi = new RefParseInfo();
 		pi.MemorizeReference(reader);
 	}
-	
+
 	protected virtual void CombineReferenceExp(
 				ReferenceExp r, Expression body, string combine ) {
 		if( redefiningRefExps.ContainsKey(r) ) {
@@ -760,10 +761,10 @@ public class GrammarReader : ValidationContext {
 			redefiningRefExps[r] = true;
 			return;	// ignore the value
 		}
-		
+
 		RefParseInfo pi = (RefParseInfo)refParseInfos[r];
 		if(pi==null)	refParseInfos[r] = pi = new RefParseInfo();
-		
+
 		if( pi.Combine!=null && combine!=null && pi.Combine!=combine ) {
 			// error: inconsistent combine method
 			ReportError( ERR_INCONSISTENT_COMBINE, r.name );
@@ -779,7 +780,7 @@ public class GrammarReader : ValidationContext {
 		} else {
 			pi.Combine = combine;
 		}
-		
+
 		if( r.exp==null )
 			r.exp = body;
 		else {
@@ -792,12 +793,12 @@ public class GrammarReader : ValidationContext {
 			}
 		}
 	}
-	
+
 	// A set of ReferenceExps which are designated as being redefined.
 	// This set is prepared by the MergeGrammar method, to check that
 	// redefined expressions are in fact defined in the merged grammar.
 	private Hashtable redefiningRefExps = new Hashtable();
-	
+
 	protected virtual void MergeGrammar() {
 		string href = GetAttribute("href");
 		if(href==null) {
@@ -808,29 +809,29 @@ public class GrammarReader : ValidationContext {
 		}
 		XmlReader newReader = ResolveEntity(href);
 			// this method has to be called while we are at the start element state.
-		
+
 		Hashtable old = redefiningRefExps;
 		redefiningRefExps = new Hashtable();
-		
+
 		try {
 			// collect redefined patterns.
 			DivInInclude();
-			
+
 			if(!PushEntity(newReader))	return;
-			
+
 			try {
 				// skip XML declarations, DOCTYPE, etc.
 				while(!reader.IsStartElement())	reader.Read();
-				
+
 				if(reader.LocalName!="grammar") {
 					// error: unexpected tag name
 					ReportError( ERR_GRAMMAR_EXPECTED, reader.Name );
 					return;
 				}
-				
+
 				// parse included pattern.
 				DivInGrammar();
-				
+
 				// make sure that there were definitions for redefined exps.
 				foreach( ReferenceExp exp in redefiningRefExps.Keys )
 					if( (bool)redefiningRefExps[exp] == false ) {
@@ -864,16 +865,16 @@ public class GrammarReader : ValidationContext {
 		}
 		ReadEndElement();
 	}
-	
-	
+
+
 	// the function object that combines two expressions into one.
 	protected delegate Expression ExpCombinator( Expression exp1, Expression exp2 );
-	
+
 	// reads child expressions and combines them by using the specified
 	// combinator.
 	protected virtual Expression ReadChildExps( ExpCombinator comb ) {
 		Expression exp = null;
-		
+
 		while(SkipForeignElements()) {
 			Expression child=ReadExp();
 			if(exp==null)	exp=child;
@@ -888,54 +889,54 @@ public class GrammarReader : ValidationContext {
 		}
 		return exp;
 	}
-	
-	
-	
+
+
+
 	// resolves the "href" value and obtains XmlReader that reads that source.
 	protected virtual XmlReader ResolveEntity( string href ) {
-		
+
 		Uri uri = this.baseUri;
-		
+
 		Trace.WriteLine(string.Format(
 			"base:{0}\nhref:{1}",
 			uri, href ));
-		
+
 		uri = new Uri( uri, href );
-		
+
 		Trace.WriteLine("after href :"+uri);
-		
-		
+
+
 		if(uri.Fragment!=String.Empty) {
 			ReportError( ERR_FRAGMENT_IN_URI, uri );
 			return null;
 		}
-		
+
 		return CreateXmlReader( uri.AbsoluteUri,
 			(Stream)Resolver.GetEntity( uri, null, typeof(Stream)));
 	}
-	
+
 	protected virtual XmlReader CreateXmlReader( string uri, Stream input ) {
 //		return new XmlTextReader(uri,input);
 		XmlValidatingReader reader = new XmlValidatingReader(new XmlTextReader(uri,input));
 		reader.ValidationType = ValidationType.None;
 		return reader;
 	}
-	
+
 //
 // Name Class Element Reader
 //===================================================
 // Each method parses one element (and its descendants) and returns a NameClass.
 // These methods assume that XmlReader is on a start tag when it's called.
 // When the method returns, XmlReader is on a start tag of the next element.
-	
+
 	protected delegate NameClass NCReader();
 	protected readonly IDictionary NCReaders;
-	
+
 	// XmlReader is on a start tag. Parses it and returns the result.
 	protected virtual NameClass ReadNameClass() {
 		if(SkipForeignElements()) {
 			Trace.WriteLine("dispatching NC: "+reader.LocalName);
-			
+
 			NCReader ncreader = (NCReader)NCReaders[reader.LocalName];
 			if(ncreader==null) {
 				// error: unknown element name
@@ -943,7 +944,7 @@ public class GrammarReader : ValidationContext {
 				reader.Skip();
 				return new SimpleNameClass("foo","bar");	// recover
 			}
-			
+
 			Trace.Indent();
 			NameClass nc = ncreader();	// dispatch the reader.
 			Trace.Unindent();
@@ -954,9 +955,9 @@ public class GrammarReader : ValidationContext {
 			return AnyNameClass.theInstance;
 		}
 	}
-	
-	
-	
+
+
+
 	protected virtual NameClass AnyName() {
 		return new AnyNameClass(ReadExceptName());
 	}
@@ -979,7 +980,7 @@ public class GrammarReader : ValidationContext {
 	}
 	protected virtual NameClass ChoiceName() {
 		NameClass nc=null;
-		
+
 		if(ReadStartElement()) {
 			while(SkipForeignElements()) {
 				NameClass child = ReadNameClass();
@@ -995,12 +996,12 @@ public class GrammarReader : ValidationContext {
 		}
 		return nc;
 	}
-	
+
 	// reads <except> clause if if exists. Otherwise returns null.
 	// This method skips any foreign elements.
 	protected virtual NameClass ReadExceptName() {
 		NameClass nc = null;
-		
+
 		if(ReadStartElement()) {
 			while(SkipForeignElements()) {
 				if(reader.LocalName=="except") {
@@ -1040,16 +1041,16 @@ public class GrammarReader : ValidationContext {
 //==============================
 //
 	protected bool HadError;
-	
+
 	protected void ReportError( string propKey, params object[] args ) {
 		HadError = true;
 		IXmlLineInfo li;
 		if(reader is IXmlLineInfo)	li = (IXmlLineInfo)reader;
 		else						li = null;
-		
+
 		Controller.error( string.Format( ResManager.GetString(propKey), args ), li );
 	}
-	
+
 	protected const string ERR_MISSING_ATTRIBUTE = // arg:2
 		"GrammarReader.MissingAttribute";
 	protected const string ERR_NO_GRAMMAR =
@@ -1098,6 +1099,39 @@ public class GrammarReader : ValidationContext {
 public interface GrammarReaderController {
 	void error( string msg, IXmlLineInfo location );
 	void warning( string msg, IXmlLineInfo location );
+}
+
+public class ConsoleController : GrammarReaderController {
+
+	public void error( string msg, IXmlLineInfo loc ) {
+		Console.WriteLine("Error: "+msg);
+		PrintLocation(loc);
+	}
+
+	public void warning( string msg, IXmlLineInfo loc ) {
+		Console.WriteLine("Warning: "+msg);
+		PrintLocation(loc);
+	}
+
+	private void PrintLocation( IXmlLineInfo loc ) {
+		if( loc!=null ) {
+			Console.WriteLine("{0}({1}:{2})",
+				((XmlReader)loc).BaseURI, loc.LineNumber, loc.LinePosition );
+		}
+	}
+}
+
+public class ErrorContainer : Verifier.ErrorHandler
+{
+	private readonly List<string> _errorMessages = new List<string>();
+
+	public void Error(string msg) {
+		_errorMessages.Add(msg);
+	}
+
+	public ICollection<string> GetErrors() {
+		return _errorMessages.ToArray();
+	}
 }
 
 }
