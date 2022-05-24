@@ -12,6 +12,7 @@
     <RepositoryUrl>https://github.com/josephmyers/relaxng-tenuto.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/josephmyers/relaxng-tenuto</PackageProjectUrl>
   </PropertyGroup>
+  
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
@@ -20,5 +21,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\relaxngDatatype\relaxngDatatype.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="$(PackageLicenseFile)" />
   </ItemGroup>
 </Project>
