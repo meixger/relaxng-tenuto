@@ -74,7 +74,7 @@ jobs:
       
       
     - name: Pack
-      run: dotnet pack -c Release /p:PackageVersion=1.0.0.32
+      run: dotnet pack -c Release /p:PackageVersion=1.0.0.40
     #- name: Push to GitHub
     #  run: dotnet nuget push "bin/Release/*.nupkg" -k ${NUGET_AUTH_TOKEN}
     #- name: Push to Nuget
