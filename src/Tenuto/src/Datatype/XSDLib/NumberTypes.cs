@@ -43,7 +43,7 @@ public class DecimalType : NumericType {
 	protected internal override
 	object GetValue( string s, ValidationContext ctxt ) {
 		// TODO: what's the equivalent of BigDecimal?
-		throw new Exception();
+		return decimal.Parse(s);
 	}
 }
 
