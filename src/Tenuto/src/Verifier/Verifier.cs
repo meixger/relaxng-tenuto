@@ -1,4 +1,4 @@
-#define	TRACE
+#undef TRACE
 
 namespace Tenuto.Verifier {
 

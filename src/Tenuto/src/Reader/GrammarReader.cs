@@ -1,3 +1,4 @@
+#undef TRACE
 namespace Tenuto.Reader {
 
 using System;
