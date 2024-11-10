@@ -9,8 +9,8 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Tenuto</RootNamespace>
     <ProjectGuid>{7AE2AAB9-710F-4BCF-81B6-A624EC6AC3B5}</ProjectGuid>
-    <RepositoryUrl>https://github.com/josephmyers/relaxng-tenuto.git</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/josephmyers/relaxng-tenuto</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/meixger/relaxng-tenuto</RepositoryUrl>
+    <Version>0.0.1-pre1</Version>
   </PropertyGroup>
   
   <PropertyGroup>
